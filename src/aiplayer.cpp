@@ -7,7 +7,6 @@
 
 #include <pthread.h>  //// for Pthreads programming
 #include <cstdio>     //// printf()
-#include "fasttime.h" //// gettime(), tdiff()
 #define NUM_THREADS 4 //// number of threads, including the main thread
 
 
@@ -150,26 +149,13 @@ bool AIPlayer::getMove(ChessBoard & board, Move & move) const
 	best = -KING_VALUE;
 
 	// get all moves
-	/* edit: measure time */
-	fasttime_t startTime;
-	fasttime_t endTime;
-
-	startTime = gettime();
 	board.getMoves(this->color, regulars, regulars, nulls);
-	endTime = gettime();
-	printf("board.getMoves()    took %lf secs\n", tdiff(startTime, endTime));
-
 
 	// execute maintenance moves  //// clear marks of passant on pawns
-	startTime = gettime();
 	for(list<Move>::iterator it = nulls.begin(); it != nulls.end(); ++it)
 		board.move(*it);
-	endTime = gettime();
-	printf("execute maintenance took %lf secs\n", tdiff(startTime, endTime));
-
 
 	//// parallelization starts
-	startTime = gettime();
 	pthread_t dummy;
 	AIPlayer dummyAIPlayer(this->color, this->search_depth);
 	std::vector<pthread_t> threads(NUM_THREADS, dummy);
@@ -211,13 +197,7 @@ bool AIPlayer::getMove(ChessBoard & board, Move & move) const
 		}
 	} //// end: combine the results of individual threads
 
-	endTime = gettime();
-	printf("parallel_search     took %lf secs\n", tdiff(startTime, endTime));
-	
-	//// parallelization ends
-
 	// loop over all moves  //// and find the candidate moves
-	startTime = gettime();
 	for(list<Move>::iterator it = regulars.begin(); it != regulars.end(); ++it)
 	{
 		// execute move
@@ -245,30 +225,10 @@ bool AIPlayer::getMove(ChessBoard & board, Move & move) const
 		// undo move and inc iterator
 		board.undoMove(*it);
 	}
-	endTime = gettime();
-	printf("loop over all      took %lf secs\n", tdiff(startTime, endTime));
-
-
-	if(threadBest == best)
-		printf("threadBest == %d, best == %d ............................ OK\n", threadBest, best);
-	else
-		printf("threadBest == %d, best == %d ............................ ERROR ERROR ERROR!!!\n", threadBest, best);
-
-
-	if(threadCandidates == candidates)
-		printf("threadCadidates == candidates ........................... OK\n");
-	else
-		printf("threadCadidates != candidates ........................... ERROR ERROR ERROR!!!\n");
-
-
 
 	// undo maintenance moves
-	startTime = gettime();
 	for(list<Move>::iterator it = nulls.begin(); it != nulls.end(); ++it)
 		board.undoMove(*it);
-	endTime = gettime();
-	printf("undo maintenance   took %lf secs\n", tdiff(startTime, endTime));
-
 
 	// loosing the game?
 	if(best < -WIN_VALUE) {
@@ -276,7 +236,6 @@ bool AIPlayer::getMove(ChessBoard & board, Move & move) const
 	}
 	else {
 		// select random move from candidate moves
-
 		move = candidates[rand() % candidates.size()];
 		return true;
 	}
