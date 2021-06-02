@@ -128,9 +128,11 @@ void startAIAdversarialChess(int level, FILE* fp, unsigned long long* nodeCount)
 int main() {
 	int num_threads = omp_get_max_threads();
 	omp_set_num_threads(num_threads);
+
+	/*
 	int gameLV = 3;
 	int gameLVMAX = gameLV;
-	int gameNum = 10;
+	int gameNum = 1;
 	FILE* fp;
 	FILE* nodefp;
 	char optName[30];
@@ -155,6 +157,10 @@ int main() {
 			fclose(fp);
 		}
 	}
+	*/
+
+	ChessBoard board;
+	AIPlayer a(WHITE, 3);
 	
 	if(!system("PAUSE"))
 		return -1;

@@ -47,7 +47,7 @@ class AIPlayer: public ChessPlayer {
 		* For now, this checks only material
 		*/
 		int evaluateBoard(const ChessBoard & board) const;
-	
+		int evaluateBoardThread(const ChessBoard & board) const;
 	protected:
 
 		/*

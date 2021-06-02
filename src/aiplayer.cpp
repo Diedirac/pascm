@@ -23,7 +23,7 @@ bool AIPlayer::getMove(ChessBoard & board, Move & move) const
 {
 	list<Move> regulars, nulls;
 	vector<Move> candidates;
-    bool quiescent = false;
+	bool quiescent = false;
 	int best, tmp;
 
 	// first assume we are loosing
@@ -37,32 +37,37 @@ bool AIPlayer::getMove(ChessBoard & board, Move & move) const
 		board.move(*it);
 
 	// loop over all moves
-	for(list<Move>::iterator it = regulars.begin(); it != regulars.end(); ++it)
+	
+	#pragma omp parallel
 	{
-		// execute move
-		board.move(*it);
+		#pragma omp for
+		for(list<Move>::iterator it = regulars.begin(); it != regulars.end(); ++it)
+		{
+			// execute move
+			board.move(*it);
 
-		// check if own king is vulnerable now
-		if(!board.isVulnerable((this->color ? board.black_king_pos : board.white_king_pos), this->color)) {
+			// check if own king is vulnerable now
+			if(!board.isVulnerable((this->color ? board.black_king_pos : board.white_king_pos), this->color)) {
 
-			if((*it).capture != EMPTY) {
-				quiescent = true;
+				if((*it).capture != EMPTY) {
+					quiescent = true;
+				}
+
+				// recursion
+				tmp = -evalAlphaBeta(board, TOGGLE_COLOR(this->color), this->search_depth - 1, -WIN_VALUE, -best, quiescent);
+				if(tmp > best) {
+					best = tmp;
+					candidates.clear();
+					candidates.push_back(*it);
+				}
+				else if(tmp == best) {
+					candidates.push_back(*it);
+				}
 			}
 
-			// recursion
-			tmp = -evalAlphaBeta(board, TOGGLE_COLOR(this->color), this->search_depth - 1, -WIN_VALUE, -best, quiescent);
-			if(tmp > best) {
-				best = tmp;
-				candidates.clear();
-				candidates.push_back(*it);
-			}
-			else if(tmp == best) {
-				candidates.push_back(*it);
-			}
+			// undo move and inc iterator
+			board.undoMove(*it);
 		}
-
-		// undo move and inc iterator
-		board.undoMove(*it);
 	}
 
 	// undo maintenance moves
@@ -262,14 +267,53 @@ int AIPlayer::evalAlphaBeta(ChessBoard & board, int color, int search_depth, int
 int AIPlayer::evaluateBoard(const ChessBoard & board) const
 {
 	int sum = 0;
+	int pos, figure, summand;
 
-	#pragma omp parallel 
+	for(pos = 0; pos < 64; pos++)
 	{
-		int pos, figure, summand;
+		figure = board.square[pos];
+		switch(FIGURE(figure))
+		{
+			case PAWN:
+				summand = PAWN_VALUE;
+				break;
+			case ROOK:
+				summand = ROOK_VALUE;
+				break;
+			case KNIGHT:
+				summand = KNIGHT_VALUE;
+				break;
+			case BISHOP:
+				summand = BISHOP_VALUE;
+				break;
+			case QUEEN:
+				summand = QUEEN_VALUE;
+				break;
+			case KING:
+				summand = KING_VALUE;
+				break;
+			default:
+				summand = 0;
+				break;
+		}
+		
+		sum += IS_BLACK(figure) ? -summand : summand;
+	}
+	
+	return sum;
+}
 
+int AIPlayer::evaluateBoardThread(const ChessBoard & board) const
+{
+	int sum = 0;
+	int pos, figure, summand;
+
+	#pragma omp parallel
+	{
 		#pragma omp for reduction(+:sum)
 		for(pos = 0; pos < 64; pos++)
 		{
+			printf("This is %d\n", pos);
 			figure = board.square[pos];
 			switch(FIGURE(figure))
 			{
@@ -299,7 +343,6 @@ int AIPlayer::evaluateBoard(const ChessBoard & board) const
 			sum += IS_BLACK(figure) ? -summand : summand;
 		}
 	}
-	
 	return sum;
 }
 

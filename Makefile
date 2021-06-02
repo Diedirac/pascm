@@ -3,15 +3,16 @@ OBJSDIR = ./objs
 OBJS = $(OBJSDIR)/playchess.o $(OBJSDIR)/chessboard.o $(OBJSDIR)/humanplayer.o \
        $(OBJSDIR)/aiplayer.o
 	   
-CFLAGS = -O2 -o
-COMPFLAGS = -O2 -fopenmp -o
+CFLAGS = -O3 -g3 -o
+COMPFLAGS = -O3 -g3 -fopenmp -o
+CSTATICFLAGS = -static -static-libgcc -static-libstdc++
 
 default: chess
 
 .PHONY: clean dirs
 	
 chess: dirs $(OBJS)
-	g++ -static -static-libgcc -static-libstdc++ $(COMPFLAGS) chess $(OBJS)
+	g++ $(COMPFLAGS) chess $(OBJS)
 	
 $(OBJSDIR)/playchess.o: $(SRCDIR)/playchess.cpp $(SRCDIR)/chessboard.h \
 	$(SRCDIR)/humanplayer.h $(SRCDIR)/aiplayer.h
